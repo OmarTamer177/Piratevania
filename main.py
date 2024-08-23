@@ -19,7 +19,7 @@ class Game:
         while True:
             # Calculating delta-time and passing it to the level run method
             # Which passes it to all sprites
-            dt = self.clock.tick(240) / 1000
+            dt = self.clock.tick(FPS) / 1000
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
