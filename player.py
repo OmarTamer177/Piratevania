@@ -55,23 +55,34 @@ class Player(pygame.sprite.Sprite):
         self.check_collisions_x()
 
         # Vertical movement
+        # Move the player in the vertical direction then check vertical collisions
+        if not self.on_surface['floor'] and (self.on_surface['right'] or self.on_surface['left']):
+            self.velocity.y = 0
+            self.rect.y += self.gravity / 10 * dt
+        else:
+            self.velocity.y += self.gravity / 2 * dt
+            self.rect.y += self.velocity.y * dt
+            self.velocity.y += self.gravity / 2 * dt
+
+        self.check_collisions_y()
 
         # Jump only if the player in on ground or touching a wall
         if self.jump:
-            self.jump = False
             if self.on_surface['floor'] or self.on_surface['left'] or self.on_surface['right']:
                 self.velocity.y = self.jump_force
-
-        # Move the player in the vertical direction then check vertical collisions
-        self.rect.y += self.velocity.y * dt
-        self.check_collisions_y()
+            self.jump = False
 
     # Create rects under the player, to his left and to his right to check for contacts with other sprites
     def check_contact(self):
         # Place rectangles on the bottom, right and left of player
         floor_rect = pygame.Rect(self.rect.bottomleft, (self.rect.width, 2))
-        left_rect = pygame.Rect((self.rect.topleft + Vector(0, self.rect.height / 4)), (-2, self.rect.height / 2))
+        left_rect = pygame.Rect((self.rect.topleft + Vector(-2, self.rect.height / 4)), (2, self.rect.height / 2))
         right_rect = pygame.Rect((self.rect.topright + Vector(0, self.rect.height / 4)), (2, self.rect.height / 2))
+
+        # Debug
+        pygame.draw.rect(pygame.display.get_surface(), 'yellow', floor_rect)
+        pygame.draw.rect(pygame.display.get_surface(), 'yellow', left_rect)
+        pygame.draw.rect(pygame.display.get_surface(), 'yellow', right_rect)
 
         # Place sprite rects in a list
         contacts = [sprite.rect for sprite in self.collision_sprites]
@@ -111,5 +122,5 @@ class Player(pygame.sprite.Sprite):
         self.prev_rect = self.rect.copy()
         self.check_contact()
         self.input()
-        self.apply_gravity(dt)
+        #self.apply_gravity(dt)
         self.move(dt)

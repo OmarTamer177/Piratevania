@@ -31,6 +31,21 @@ class Game:
             pygame.display.flip()
 
 
+class GameTest:
+    def __init__(self):
+        self.screen = pygame.display.set_mode(WINDOWED_SIZE, pygame.SCALED)
+        self.clock = pygame.time.Clock()
+
+    def run(self):
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+
 if __name__ == '__main__':
     game = Game()
     game.run()
