@@ -1,20 +1,30 @@
 from settings import *
+from level import Level
 
-# Start in windowed mode
-screen = pygame.display.set_mode(WINDOWED_SIZE, pygame.SCALED)
-clock = pygame.time.Clock()
-pygame.display.set_caption('PirateVania')
 
-while True:
-    screen.fill((0, 0, 0))
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
+class Game:
+    def __init__(self):
+        # Start in windowed mode
+        self.screen = pygame.display.set_mode(WINDOWED_SIZE, pygame.SCALED)
+        self.clock = pygame.time.Clock()
+        pygame.display.set_caption('PirateVania')
 
-    pygame.display.flip()
-    clock.tick(60)
+        self.maps = {0: load_pygame(join('Assets', 'data', 'levels', 'omni.tmx'))}
+
+        self.current_level = Level(self.maps[0])
+
+    def run(self):
+        while True:
+            dt = self.clock.tick(FPS) / 1000
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            self.current_level.run(dt)
+
+            pygame.display.flip()
+
+
+if __name__ == '__main__':
+    game = Game()
+    game.run()
