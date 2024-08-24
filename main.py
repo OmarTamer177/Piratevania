@@ -9,8 +9,7 @@ class Game:
         self.clock = pygame.time.Clock()
         pygame.display.set_caption('PirateVania')
 
-        # Importing tiled maps in a dictionary,
-        # and the current level is selected from it
+        # Importing tiled maps in a dictionary, and the current level is selected from it
         self.maps = {0: load_pygame(join('Assets', 'data', 'levels', 'omni.tmx'))}
         self.current_level = Level(self.maps[0])
 
@@ -29,21 +28,6 @@ class Game:
             self.current_level.run(dt)
 
             pygame.display.flip()
-
-
-class GameTest:
-    def __init__(self):
-        self.screen = pygame.display.set_mode(WINDOWED_SIZE, pygame.SCALED)
-        self.clock = pygame.time.Clock()
-
-    def run(self):
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-            pygame.display.flip()
-            self.clock.tick(FPS)
 
 
 if __name__ == '__main__':

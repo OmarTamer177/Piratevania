@@ -1,4 +1,5 @@
 from settings import *
+from timer import Timer
 
 
 class Player(pygame.sprite.Sprite):
@@ -22,30 +23,33 @@ class Player(pygame.sprite.Sprite):
         self.collision_sprites = collision_sprites
         self.on_surface = {'floor': False, 'left': False, 'right': False}
 
+        # Timers
+        self.timers = {
+            'wall jump': Timer(200),
+            'wall slide block': Timer(250),
+        }
+
     def input(self):
         keys = pygame.key.get_pressed()
 
         # input vector used to get player input on the axis
         # and to stop the player if both directions are pressed at the same time
         input_vector = Vector(0, 0)
-        if keys[pygame.K_d]:
-            input_vector.x += 1
-        if keys[pygame.K_a]:
-            input_vector.x -= 1
+        if not self.timers['wall jump'].active:
+            if keys[pygame.K_d]:
+                input_vector.x += 1
+            if keys[pygame.K_a]:
+                input_vector.x -= 1
 
-        # Normalize the input vector to ensure the direction vector is always a unit vector
-        if input_vector.x:
-            self.velocity.x = input_vector.normalize().x
-        else:
-            self.velocity.x = input_vector.x
+            # Normalize the input vector to ensure the direction vector is always a unit vector
+            if input_vector.x:
+                self.velocity.x = input_vector.normalize().x
+            else:
+                self.velocity.x = input_vector.x
 
         # Press space to jump
         if keys[pygame.K_SPACE]:
             self.jump = True
-
-    def apply_gravity(self, dt):
-        # Add vertical acceleration(aka gravity) to the vertical velocity
-        self.velocity.y += self.gravity * dt
 
     # Move the player according to its direction and speed
     def move(self, dt):
@@ -55,11 +59,17 @@ class Player(pygame.sprite.Sprite):
         self.check_collisions_x()
 
         # Vertical movement
-        # Move the player in the vertical direction then check vertical collisions
-        if not self.on_surface['floor'] and (self.on_surface['right'] or self.on_surface['left']):
-            self.velocity.y = 0
-            self.rect.y += self.gravity / 10 * dt
+        # Move the player in the vertical direction then check vertical collisions.
+
+        # Player can wall slide only if he is not touching the ground and touching a wall
+        # and has been airborne for some time, else: fall with gravity
+        if (not not self.timers['wall slide block'].active and not self.on_surface['floor']
+                and (self.on_surface['right'] or self.on_surface['left'])):
+            # Give The player a constant falling speed on wall slide
+            self.velocity.y = self.gravity / 10 * dt
+            self.rect.y += self.velocity.y
         else:
+            # Add vertical acceleration(aka gravity) to the vertical velocity
             self.velocity.y += self.gravity / 2 * dt
             self.rect.y += self.velocity.y * dt
             self.velocity.y += self.gravity / 2 * dt
@@ -68,8 +78,13 @@ class Player(pygame.sprite.Sprite):
 
         # Jump only if the player in on ground or touching a wall
         if self.jump:
-            if self.on_surface['floor'] or self.on_surface['left'] or self.on_surface['right']:
+            if self.on_surface['floor']:
+                self.timers['wall slide block'].activate()
                 self.velocity.y = self.jump_force
+            elif not self.timers['wall slide block'].active and (self.on_surface['left'] or self.on_surface['right']):
+                self.timers['wall jump'].activate()
+                self.velocity.y = self.jump_force
+                self.velocity.x = 1 if self.on_surface['left'] else -1
             self.jump = False
 
     # Create rects under the player, to his left and to his right to check for contacts with other sprites
@@ -118,9 +133,13 @@ class Player(pygame.sprite.Sprite):
 
                 self.velocity.y = 0
 
+    def update_timers(self):
+        for timer in self.timers.values():
+            timer.update()
+
     def update(self, dt):
         self.prev_rect = self.rect.copy()
+        self.update_timers()
         self.check_contact()
         self.input()
-        #self.apply_gravity(dt)
         self.move(dt)
