@@ -33,7 +33,7 @@ class Level:
         # Moving objects
         for obj in tmx_map.get_layer_by_name('Moving Objects'):
             if obj.name == 'helicopter':
-                print("pp")
+                pass
 
     # Load background, draw sprites and update them
     def run(self, dt):
