@@ -1,5 +1,3 @@
-import pygame
-
 from settings import *
 from timer import Timer
 
@@ -21,7 +19,7 @@ class Player(pygame.sprite.Sprite):
         self.jump = False
         self.jump_force = -800
         self.dash = False
-        self.dash_speed = 1500
+        self.dash_speed = 1700
 
         # Collisions
         self.collision_sprites = collision_sprites
@@ -35,10 +33,6 @@ class Player(pygame.sprite.Sprite):
             'dash delay': Timer(500),
         }
 
-    def deactivate_dash(self):
-        self.dash = False
-        self.timers['dash delay'].activate()
-
     def input(self):
         keys = pygame.key.get_pressed()
 
@@ -51,9 +45,12 @@ class Player(pygame.sprite.Sprite):
             if keys[pygame.K_a]:
                 input_vector.x -= 1
 
-            if keys[pygame.K_LSHIFT]:
-                self.timers['dash'].activate()
-                self.dash = True
+            # Dash on left shift
+            if keys[pygame.K_LSHIFT] and input_vector.x:
+                if not self.dash and not self.timers['dash delay'].active:
+                    self.dash = True
+                    self.velocity.x = input_vector.x  # Lock in the direction
+                    self.timers['dash'].activate()
 
             # Normalize the input vector to ensure the direction vector is always a unit vector
             if input_vector.x:
@@ -71,6 +68,7 @@ class Player(pygame.sprite.Sprite):
         # Move the player in the horizontal direction then check horizontal collisions
         if self.dash and not self.timers['dash delay'].active:
             self.rect.x += self.velocity.x * self.dash_speed * dt
+            self.velocity.y = 0
         else:
             self.rect.x += self.velocity.x * self.speed * dt
         self.check_collisions_x()
@@ -93,8 +91,8 @@ class Player(pygame.sprite.Sprite):
 
         self.check_collisions_y()
 
-        # Jump only if the player in on ground or touching a wall
-        if self.jump:
+        # Jump only if the player in on ground or touching a wall and player is not dashing
+        if self.jump and not self.dash:
             if self.on_surface['floor']:
                 self.timers['wall slide block'].activate()
                 self.velocity.y = self.jump_force
@@ -104,17 +102,16 @@ class Player(pygame.sprite.Sprite):
                 self.velocity.x = 1 if self.on_surface['left'] else -1
             self.jump = False
 
+    def deactivate_dash(self):
+        self.dash = False
+        self.timers['dash delay'].activate()
+
     # Create rects under the player, to his left and to his right to check for contacts with other sprites
     def check_contact(self):
         # Place rectangles on the bottom, right and left of player
         floor_rect = pygame.Rect(self.rect.bottomleft, (self.rect.width, 2))
         left_rect = pygame.Rect((self.rect.topleft + Vector(-2, self.rect.height / 4)), (2, self.rect.height / 2))
         right_rect = pygame.Rect((self.rect.topright + Vector(0, self.rect.height / 4)), (2, self.rect.height / 2))
-
-        # Debug
-        pygame.draw.rect(pygame.display.get_surface(), 'yellow', floor_rect)
-        pygame.draw.rect(pygame.display.get_surface(), 'yellow', left_rect)
-        pygame.draw.rect(pygame.display.get_surface(), 'yellow', right_rect)
 
         # Place sprite rects in a list
         contacts = [sprite.rect for sprite in self.collision_sprites]
