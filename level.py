@@ -1,7 +1,7 @@
 import pygame.sprite
 import pytmx
 from settings import *
-from sprites import Sprite
+from sprites import Sprite, MovingSprite
 from player import Player
 from groups import CameraGroup
 
@@ -9,6 +9,7 @@ from groups import CameraGroup
 # Level class holds the tiled map and sprites needed for the level
 class Level:
     def __init__(self, tmx_map: pytmx.TiledMap):
+        self.player = None
         self.screen = pygame.display.get_surface()    # Gets the screen
 
         # Sprite groups
@@ -34,11 +35,21 @@ class Level:
         # Moving objects
         for obj in tmx_map.get_layer_by_name('Moving Objects'):
             if obj.name == 'helicopter':
-                pass
+                if obj.width > obj.height:  # horizontal platform
+                    # obj.x and obj.y are the top-left point of the object
+                    direction = 'x'
+                    start_point = (obj.x, obj.y + obj.height/2)
+                    end_point = (obj.x + obj.width, obj.y + obj.height/2)
+                else:                       # vertical platform
+                    direction = 'y'
+                    start_point = (obj.x + obj.width/2, obj.y)
+                    end_point = (obj.x + obj.width/2, obj.y + obj.height)
+                speed = obj.properties['speed']
+                MovingSprite((self.all_sprites, self.collision_group), start_point, end_point, direction, speed)
 
     # Load background, draw sprites and update them
     def run(self, dt):
         self.screen.fill('black')
-        self.all_sprites.update(dt)
         self.all_sprites.draw(dt)
+        self.all_sprites.update(dt)
         self.all_sprites.start_slide(self.player.rect.topleft)

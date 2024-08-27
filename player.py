@@ -24,6 +24,7 @@ class Player(pygame.sprite.Sprite):
         # Collisions
         self.collision_sprites = collision_sprites
         self.on_surface = {'floor': False, 'left': False, 'right': False}
+        self.platform = None
 
         # Timers
         self.timers = {
@@ -94,8 +95,8 @@ class Player(pygame.sprite.Sprite):
         # Jump only if the player in on ground or touching a wall and player is not dashing
         if self.jump and not self.dash:
             if self.on_surface['floor']:
-                self.timers['wall slide block'].activate()
                 self.velocity.y = self.jump_force
+                self.timers['wall slide block'].activate()
             elif not self.timers['wall slide block'].active and (self.on_surface['left'] or self.on_surface['right']):
                 self.timers['wall jump'].activate()
                 self.velocity.y = -600
@@ -105,6 +106,10 @@ class Player(pygame.sprite.Sprite):
     def deactivate_dash(self):
         self.dash = False
         self.timers['dash delay'].activate()
+
+    def move_platform(self, dt):
+        if self.platform:
+            self.rect.topleft += self.platform.direction * self.platform.speed * dt
 
     # Create rects under the player, to his left and to his right to check for contacts with other sprites
     def check_contact(self):
@@ -120,6 +125,12 @@ class Player(pygame.sprite.Sprite):
         self.on_surface['floor'] = True if floor_rect.collidelist(contacts) >= 0 else False
         self.on_surface['left'] = True if left_rect.collidelist(contacts) >= 0 else False
         self.on_surface['right'] = True if right_rect.collidelist(contacts) >= 0 else False
+
+        # Check for contacts with moving platforms
+        self.platform = None
+        for sprite in [sprite for sprite in self.collision_sprites.sprites() if hasattr(sprite, 'moving')]:
+            if sprite.rect.colliderect(floor_rect):
+                self.platform = sprite
 
     def check_collisions_x(self):
         for sprite in self.collision_sprites:
@@ -143,6 +154,8 @@ class Player(pygame.sprite.Sprite):
                 # Check Top collision
                 if self.rect.top <= sprite.rect.bottom and self.prev_rect.top >= sprite.prev_rect.bottom:
                     self.rect.top = sprite.rect.bottom
+                    if hasattr(sprite, 'moving'):
+                        self.rect.top += 5
                     self.jump = False
 
                 self.velocity.y = 0
@@ -154,6 +167,7 @@ class Player(pygame.sprite.Sprite):
     def update(self, dt):
         self.prev_rect = self.rect.copy()
         self.update_timers()
-        self.check_contact()
+        self.move_platform(dt)
         self.input()
         self.move(dt)
+        self.check_contact()
