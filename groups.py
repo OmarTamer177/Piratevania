@@ -7,7 +7,7 @@ class CameraGroup(pygame.sprite.Group):
         self.screen = pygame.display.get_surface()
         self.offset = Vector(0, 0)
         self.target_offset = Vector(0, 0)
-        self.transition_speed = 5  # Controls how fast the camera slides
+        self.transition_speed = 4  # Controls how fast the camera slides
 
         # Fade effect
         self.fade_surface = pygame.Surface(self.screen.get_size())

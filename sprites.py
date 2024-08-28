@@ -1,5 +1,3 @@
-import pygame
-
 from settings import *
 
 
@@ -17,7 +15,8 @@ class Sprite(pygame.sprite.Sprite):
 
 class MovingSprite(Sprite):
     def __init__(self, group, start_point, end_point, move_dir, speed):
-        super().__init__(start_point, pygame.Surface((200, 50)), group=group)
+        surf = pygame.Surface((200, 50))
+        super().__init__(start_point, surf, group=group)
         self.rect.center = start_point
 
         self.start_point = start_point
@@ -42,4 +41,3 @@ class MovingSprite(Sprite):
                 self.direction = Vector(0, -1)
             elif self.direction == Vector(0, -1) and self.rect.top <= self.start_point[1]:
                 self.direction = Vector(0, 1)
-

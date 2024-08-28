@@ -15,6 +15,7 @@ class Level:
         # Sprite groups
         self.all_sprites = CameraGroup()              # Create a sprite group to handle the sprites
         self.collision_group = pygame.sprite.Group()  # Create a group to check collisions between sprites
+        self.semi_collision_group = pygame.sprite.Group()  # Create a group to check collisions for semi-collidable sprites
 
         self.setup(tmx_map)                           # Set up the tiled map
 
@@ -30,7 +31,8 @@ class Level:
         for obj in tmx_map.get_layer_by_name('Objects'):
             # Instantiate a player object if the current object in tiled map objects is a player
             if obj.name == 'player':
-                self.player = Player((obj.x, obj.y), self.all_sprites, self.collision_group)
+                self.player = Player((obj.x, obj.y), self.all_sprites, self.collision_group,
+                                     self.semi_collision_group)
 
         # Moving objects
         for obj in tmx_map.get_layer_by_name('Moving Objects'):
@@ -45,7 +47,7 @@ class Level:
                     start_point = (obj.x + obj.width/2, obj.y)
                     end_point = (obj.x + obj.width/2, obj.y + obj.height)
                 speed = obj.properties['speed']
-                MovingSprite((self.all_sprites, self.collision_group), start_point, end_point, direction, speed)
+                MovingSprite((self.all_sprites, self.semi_collision_group), start_point, end_point, direction, speed)
 
     # Load background, draw sprites and update them
     def run(self, dt):

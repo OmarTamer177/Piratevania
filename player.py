@@ -3,7 +3,7 @@ from timer import Timer
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, group, collision_sprites):
+    def __init__(self, pos, group, collision_sprites, semi_collision_sprites):
         super().__init__(group)
         self.image = pygame.Surface((48, 56))
         self.image.fill('red')
@@ -23,15 +23,17 @@ class Player(pygame.sprite.Sprite):
 
         # Collisions
         self.collision_sprites = collision_sprites
+        self.semi_collision_sprites = semi_collision_sprites
         self.on_surface = {'floor': False, 'left': False, 'right': False}
         self.platform = None
 
         # Timers
         self.timers = {
             'wall jump': Timer(200),
-            'wall slide block': Timer(250),
+            'wall slide block': Timer(300),
             'dash': Timer(100, lambda: self.deactivate_dash()),
-            'dash delay': Timer(500),
+            'dash delay': Timer(700),
+            'platform skip': Timer(200),
         }
 
     def input(self):
@@ -45,6 +47,8 @@ class Player(pygame.sprite.Sprite):
                 input_vector.x += 1
             if keys[pygame.K_a]:
                 input_vector.x -= 1
+            if keys[pygame.K_s]:
+                self.timers['platform skip'].activate()
 
             # Dash on left shift
             if keys[pygame.K_LSHIFT] and input_vector.x:
@@ -119,16 +123,19 @@ class Player(pygame.sprite.Sprite):
         right_rect = pygame.Rect((self.rect.topright + Vector(0, self.rect.height / 4)), (2, self.rect.height / 2))
 
         # Place sprite rects in a list
-        contacts = [sprite.rect for sprite in self.collision_sprites]
+        collidable_contacts = [sprite.rect for sprite in self.collision_sprites]
+        semi_collidable_contacts = [sprite.rect for sprite in self.semi_collision_sprites]
 
         # And check for contact of that list with the player
-        self.on_surface['floor'] = True if floor_rect.collidelist(contacts) >= 0 else False
-        self.on_surface['left'] = True if left_rect.collidelist(contacts) >= 0 else False
-        self.on_surface['right'] = True if right_rect.collidelist(contacts) >= 0 else False
+        self.on_surface['floor'] = True if (floor_rect.collidelist(collidable_contacts + semi_collidable_contacts) >= 0
+                                            and self.velocity.y >= 0) else False
+        self.on_surface['left'] = True if left_rect.collidelist(collidable_contacts) >= 0 else False
+        self.on_surface['right'] = True if right_rect.collidelist(collidable_contacts) >= 0 else False
 
         # Check for contacts with moving platforms
         self.platform = None
-        for sprite in [sprite for sprite in self.collision_sprites.sprites() if hasattr(sprite, 'moving')]:
+        sprites = self.collision_sprites.sprites() + self.semi_collision_sprites.sprites()
+        for sprite in [sprite for sprite in sprites if hasattr(sprite, 'moving')]:
             if sprite.rect.colliderect(floor_rect):
                 self.platform = sprite
 
@@ -136,11 +143,11 @@ class Player(pygame.sprite.Sprite):
         for sprite in self.collision_sprites:
             if self.rect.colliderect(sprite.rect):
                 # Check Left collision
-                if self.rect.left <= sprite.rect.right and self.prev_rect.left >= sprite.prev_rect.right:
+                if self.rect.left <= sprite.rect.right and int(self.prev_rect.left) >= sprite.prev_rect.right:
                     self.rect.left = sprite.rect.right
 
                 # Check Right collision
-                if self.rect.right >= sprite.rect.left and self.prev_rect.right <= sprite.prev_rect.left:
+                if self.rect.right >= sprite.rect.left and int(self.prev_rect.right) <= sprite.prev_rect.left:
                     self.rect.right = sprite.rect.left
 
     def check_collisions_y(self):
@@ -148,17 +155,26 @@ class Player(pygame.sprite.Sprite):
             if self.rect.colliderect(sprite.rect):
 
                 # Check Bottom collision
-                if self.rect.bottom >= sprite.rect.top and self.prev_rect.bottom <= sprite.prev_rect.top:
+                if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= sprite.prev_rect.top:
                     self.rect.bottom = sprite.rect.top
 
                 # Check Top collision
-                if self.rect.top <= sprite.rect.bottom and self.prev_rect.top >= sprite.prev_rect.bottom:
+                if self.rect.top <= sprite.rect.bottom and int(self.prev_rect.top) >= sprite.prev_rect.bottom:
                     self.rect.top = sprite.rect.bottom
                     if hasattr(sprite, 'moving'):
                         self.rect.top += 5
                     self.jump = False
 
                 self.velocity.y = 0
+
+        # Check collisions with semi-collidable platforms
+        for sprite in self.semi_collision_sprites:
+            # Check Bottom collision
+            if not self.timers['platform skip'].active:
+                if self.rect.colliderect(sprite.rect):
+                    if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
+                        self.rect.bottom = sprite.rect.top
+                        self.velocity.y = 0
 
     def update_timers(self):
         for timer in self.timers.values():
