@@ -3,10 +3,13 @@ from settings import *
 
 # Sprite class is responsible for loading a sprite objects and adding them to different groups
 class Sprite(pygame.sprite.Sprite):
-    def __init__(self, pos, surf=pygame.Surface((TILE_SIZE, TILE_SIZE)), group=None):
+    def __init__(self, pos, surf=None, group=None):
         super().__init__(group)  # Pass groups correctly
-        self.image = surf
-        self.image.fill('white')
+        if not surf:
+            self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
+            self.image.fill('white')
+        else:
+            self.image = surf
         self.rect = self.image.get_frect(topleft=pos)
 
         # Copy of previous position
@@ -16,6 +19,7 @@ class Sprite(pygame.sprite.Sprite):
 class MovingSprite(Sprite):
     def __init__(self, group, start_point, end_point, move_dir, speed):
         surf = pygame.Surface((200, 50))
+        surf.fill('white')
         super().__init__(start_point, surf, group=group)
         self.rect.center = start_point
 

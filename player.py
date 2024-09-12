@@ -1,3 +1,5 @@
+import pygame.display
+
 from settings import *
 from timer import Timer
 
@@ -5,8 +7,11 @@ from timer import Timer
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos, group, collision_sprites, semi_collision_sprites):
         super().__init__(group)
-        self.image = pygame.Surface((48, 56))
+
+        # Load surface and rect
+        self.image = pygame.Surface((45, 54))
         self.image.fill('red')
+
         self.rect = self.image.get_frect(topleft=pos)
 
         # Copy of previous position
@@ -143,11 +148,11 @@ class Player(pygame.sprite.Sprite):
         for sprite in self.collision_sprites:
             if self.rect.colliderect(sprite.rect):
                 # Check Left collision
-                if self.rect.left <= sprite.rect.right and int(self.prev_rect.left) >= sprite.prev_rect.right:
+                if self.rect.left <= sprite.rect.right and int(self.prev_rect.left) >= int(sprite.prev_rect.right):
                     self.rect.left = sprite.rect.right
 
                 # Check Right collision
-                if self.rect.right >= sprite.rect.left and int(self.prev_rect.right) <= sprite.prev_rect.left:
+                if self.rect.right >= sprite.rect.left and int(self.prev_rect.right) <= int(sprite.prev_rect.left):
                     self.rect.right = sprite.rect.left
 
     def check_collisions_y(self):
@@ -155,11 +160,11 @@ class Player(pygame.sprite.Sprite):
             if self.rect.colliderect(sprite.rect):
 
                 # Check Bottom collision
-                if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= sprite.prev_rect.top:
+                if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
                     self.rect.bottom = sprite.rect.top
 
                 # Check Top collision
-                if self.rect.top <= sprite.rect.bottom and int(self.prev_rect.top) >= sprite.prev_rect.bottom:
+                if self.rect.top <= sprite.rect.bottom and int(self.prev_rect.top) >= int(sprite.prev_rect.bottom):
                     self.rect.top = sprite.rect.bottom
                     if hasattr(sprite, 'moving'):
                         self.rect.top += 5
@@ -174,7 +179,8 @@ class Player(pygame.sprite.Sprite):
                 if self.rect.colliderect(sprite.rect):
                     if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
                         self.rect.bottom = sprite.rect.top
-                        self.velocity.y = 0
+                        if self.velocity.y >= 0:
+                            self.velocity.y = 0
 
     def update_timers(self):
         for timer in self.timers.values():

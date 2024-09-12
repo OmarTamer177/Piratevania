@@ -7,7 +7,7 @@ class CameraGroup(pygame.sprite.Group):
         self.screen = pygame.display.get_surface()
         self.offset = Vector(0, 0)
         self.target_offset = Vector(0, 0)
-        self.transition_speed = 4  # Controls how fast the camera slides
+        self.transition_speed = 5  # Controls how fast the camera slides
 
         # Fade effect
         self.fade_surface = pygame.Surface(self.screen.get_size())
@@ -17,6 +17,10 @@ class CameraGroup(pygame.sprite.Group):
         self.fade_in = True
         self.fade_duration = 1000  # Duration in milliseconds
         self.fade_start_time = None
+
+        # screen shake
+        self.shake_pos = Vector(0, 0)
+        self.shake_power = 0
 
     def start_slide(self, player_pos):
         """Start sliding the camera to the target position and trigger fade."""
@@ -59,8 +63,10 @@ class CameraGroup(pygame.sprite.Group):
         self.update_camera(dt)
 
         # Draw all sprites with the updated offset
+        self.shake_pos = Vector(randint(-self.shake_power, self.shake_power),
+                                randint(-self.shake_power, self.shake_power))
         for sprite in self:
-            pos = sprite.rect.topleft - self.offset
+            pos = sprite.rect.topleft - self.offset + self.shake_pos
             self.screen.blit(sprite.image, pos)
 
         # Handle the fade effect

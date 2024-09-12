@@ -1,9 +1,9 @@
-import pygame.sprite
 import pytmx
 from settings import *
 from sprites import Sprite, MovingSprite
 from player import Player
 from groups import CameraGroup
+from timer import Timer
 
 
 # Level class holds the tiled map and sprites needed for the level
@@ -25,7 +25,7 @@ class Level:
         # as the position is its arrangement not the absolute position,
         # and Instantiate a new sprite object
         for x, y, surf in tmx_map.get_layer_by_name('Terrain').tiles():
-            Sprite((x * TILE_SIZE, y * TILE_SIZE), surf, (self.all_sprites, self.collision_group))
+            Sprite((x * TILE_SIZE, y * TILE_SIZE), None, (self.all_sprites, self.collision_group))
 
         # For the objects, their position is the absolute position unlike regular tiles
         for obj in tmx_map.get_layer_by_name('Objects'):
@@ -47,7 +47,7 @@ class Level:
                     start_point = (obj.x + obj.width/2, obj.y)
                     end_point = (obj.x + obj.width/2, obj.y + obj.height)
                 speed = obj.properties['speed']
-                MovingSprite((self.all_sprites, self.semi_collision_group), start_point, end_point, direction, speed)
+                MovingSprite((self.all_sprites, self.collision_group), start_point, end_point, direction, speed)
 
     # Load background, draw sprites and update them
     def run(self, dt):

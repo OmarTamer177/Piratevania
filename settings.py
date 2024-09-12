@@ -3,6 +3,7 @@ import sys
 from os.path import join
 from pygame.math import Vector2 as Vector
 from pytmx.util_pygame import load_pygame
+from random import randint
 
 pygame.init()
 
