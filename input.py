@@ -1,5 +1,5 @@
 class Input:
-    def __init__(self, keyup=None, keydown=None):
+    def __init__(self, keydown=None, keyup=None):
         self.keyup = keyup
         self.keydown = keydown
 

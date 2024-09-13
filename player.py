@@ -2,11 +2,22 @@ import pygame.display
 
 from settings import *
 from timer import Timer
+from input import InputSystem, Input
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, group, collision_sprites, semi_collision_sprites):
+    def __init__(self, input_system, pos, group, collision_sprites, semi_collision_sprites):
         super().__init__(group)
+
+        # Load the character's input system
+        self.input_system = input_system
+
+        # Add the character's inputs to the input system
+        inputs = {
+            pygame.K_SPACE: Input(lambda: print("jump")),
+        }
+        for key, value in inputs.items():
+            self.input_system.add_input(key, value)
 
         # Load surface and rect
         self.image = pygame.Surface((45, 54))

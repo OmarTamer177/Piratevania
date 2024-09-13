@@ -1,14 +1,15 @@
 import pytmx
+
+from input import InputSystem, Input
 from settings import *
 from sprites import Sprite, MovingSprite
 from player import Player
 from groups import CameraGroup
-from timer import Timer
 
 
 # Level class holds the tiled map and sprites needed for the level
 class Level:
-    def __init__(self, tmx_map: pytmx.TiledMap):
+    def __init__(self, tmx_map: pytmx.TiledMap, input_system: InputSystem):
         self.player = None
         self.screen = pygame.display.get_surface()    # Gets the screen
 
@@ -16,6 +17,9 @@ class Level:
         self.all_sprites = CameraGroup()              # Create a sprite group to handle the sprites
         self.collision_group = pygame.sprite.Group()  # Create a group to check collisions between sprites
         self.semi_collision_group = pygame.sprite.Group()  # Create a group to check collisions for semi-collidable sprites
+
+        # Input system
+        self.input_system = input_system
 
         self.setup(tmx_map)                           # Set up the tiled map
 
@@ -31,7 +35,7 @@ class Level:
         for obj in tmx_map.get_layer_by_name('Objects'):
             # Instantiate a player object if the current object in tiled map objects is a player
             if obj.name == 'player':
-                self.player = Player((obj.x, obj.y), self.all_sprites, self.collision_group,
+                self.player = Player(self.input_system, (obj.x, obj.y), self.all_sprites, self.collision_group,
                                      self.semi_collision_group)
 
         # Moving objects
