@@ -4,12 +4,16 @@ from settings import *
 # Sprite class is responsible for loading a sprite objects and adding them to different groups
 class Sprite(pygame.sprite.Sprite):
     def __init__(self, pos, surf=None, group=None):
-        super().__init__(group)  # Pass groups correctly
+        super().__init__(group)
+
+        # Load the surface if there is a surface
         if not surf:
             self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
             self.image.fill('white')
         else:
             self.image = surf
+
+        # Sprite rect
         self.rect = self.image.get_frect(topleft=pos)
 
         # Copy of previous position
@@ -23,23 +27,29 @@ class MovingSprite(Sprite):
         super().__init__(start_point, surf, group=group)
         self.rect.center = start_point
 
+        # Movement of sprite
         self.start_point = start_point
         self.end_point = end_point
         self.speed = speed
         self.move_dir = move_dir
-
         self.direction = Vector(1, 0) if move_dir == 'x' else Vector(0, 1)
         self.moving = True
 
     def update(self, dt):
+        # Update sprite's previous position
         self.prev_rect = self.rect.copy()
+
+        # Update sprite's current position
         self.rect.topleft += self.direction * self.speed * dt
 
+        # Update sprite's direction, and flip their direction when reaching an end-point
+        # Horizontal Moving sprite
         if self.move_dir == 'x':
             if self.direction == Vector(1, 0) and self.rect.right >= self.end_point[0]:
                 self.direction = Vector(-1, 0)
             elif self.direction == Vector(-1, 0) and self.rect.left <= self.start_point[0]:
                 self.direction = Vector(1, 0)
+        # Vertical Moving sprite
         elif self.move_dir == 'y':
             if self.direction == Vector(0, 1) and self.rect.bottom >= self.end_point[1]:
                 self.direction = Vector(0, -1)

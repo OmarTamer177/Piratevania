@@ -1,6 +1,6 @@
 import pytmx
 
-from input import InputSystem, Input
+from input import InputSystem
 from settings import *
 from sprites import Sprite, MovingSprite
 from player import Player
@@ -21,7 +21,8 @@ class Level:
         # Input system
         self.input_system = input_system
 
-        self.setup(tmx_map)                           # Set up the tiled map
+        # Set up the tiled map
+        self.setup(tmx_map)
 
     # Method used to load the tiles and objects in the tiled map to all_sprites group
     def setup(self, tmx_map: pytmx.TiledMap):
@@ -41,17 +42,19 @@ class Level:
         # Moving objects
         for obj in tmx_map.get_layer_by_name('Moving Objects'):
             if obj.name == 'helicopter':
-                if obj.width > obj.height:  # horizontal platform
+                # Horizontal platform
+                if obj.width > obj.height:
                     # obj.x and obj.y are the top-left point of the object
                     direction = 'x'
                     start_point = (obj.x, obj.y + obj.height/2)
                     end_point = (obj.x + obj.width, obj.y + obj.height/2)
-                else:                       # vertical platform
+                # Vertical platform
+                else:
                     direction = 'y'
                     start_point = (obj.x + obj.width/2, obj.y)
                     end_point = (obj.x + obj.width/2, obj.y + obj.height)
                 speed = obj.properties['speed']
-                MovingSprite((self.all_sprites, self.semi_collision_group), start_point, end_point, direction, speed)
+                MovingSprite((self.all_sprites, self.collision_group), start_point, end_point, direction, speed)
 
     # Load background, draw sprites and update them
     def run(self, dt):

@@ -13,7 +13,5 @@ FULL_SCREEN_SIZE = (MY_SCREEN_SIZE.current_w, MY_SCREEN_SIZE.current_h)
 WINDOWED_SIZE = (1280, 720)
 
 # Constants
-TILE_SIZE = 64
-
-# Frames Per Second
 FPS = 60
+TILE_SIZE = 64

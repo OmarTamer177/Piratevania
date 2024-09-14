@@ -1,3 +1,6 @@
+from settings import *
+
+
 class Input:
     def __init__(self, keydown=None, keyup=None):
         self.keyup = keyup
@@ -5,7 +8,7 @@ class Input:
 
 
 class InputSystem:
-    def __init__(self, inputs):
+    def __init__(self, inputs: dict[pygame.constants, Input]):
         self.inputs = inputs
 
     def add_input(self, key, new_input):
