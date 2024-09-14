@@ -51,7 +51,7 @@ class Level:
                     start_point = (obj.x + obj.width/2, obj.y)
                     end_point = (obj.x + obj.width/2, obj.y + obj.height)
                 speed = obj.properties['speed']
-                MovingSprite((self.all_sprites, self.collision_group), start_point, end_point, direction, speed)
+                MovingSprite((self.all_sprites, self.semi_collision_group), start_point, end_point, direction, speed)
 
     # Load background, draw sprites and update them
     def run(self, dt):

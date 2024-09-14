@@ -2,7 +2,7 @@ import pygame.display
 
 from settings import *
 from timer import Timer
-from input import InputSystem, Input
+from input import Input
 
 
 class Player(pygame.sprite.Sprite):
@@ -14,7 +14,11 @@ class Player(pygame.sprite.Sprite):
 
         # Add the character's inputs to the input system
         inputs = {
-            pygame.K_SPACE: Input(lambda: print("jump")),
+            pygame.K_a: Input(self.left_pressed, self.left_released),
+            pygame.K_d: Input(self.right_pressed, self.right_released),
+            pygame.K_s: Input(self.down_pressed),
+            pygame.K_SPACE: Input(self.jump_pressed),
+            pygame.K_LSHIFT: Input(self.dash_pressed),
         }
         for key, value in inputs.items():
             self.input_system.add_input(key, value)
@@ -29,11 +33,12 @@ class Player(pygame.sprite.Sprite):
         self.prev_rect = self.rect.copy()
 
         # Movement of the player
+        self.input_vector = Vector(0, 0)
         self.velocity = Vector(0, 0)
         self.speed = 300
         self.gravity = 2000
         self.jump = False
-        self.jump_force = -800
+        self.jump_force = -830
         self.dash = False
         self.dash_speed = 1700
 
@@ -47,47 +52,61 @@ class Player(pygame.sprite.Sprite):
         self.timers = {
             'wall jump': Timer(200),
             'wall slide block': Timer(300),
-            'dash': Timer(100, lambda: self.deactivate_dash()),
+            'dash': Timer(100, self.deactivate_dash),
             'dash delay': Timer(700),
             'platform skip': Timer(200),
         }
 
-    def input(self):
-        keys = pygame.key.get_pressed()
+    def left_pressed(self):
+        self.input_vector.x -= 1
 
-        # input vector used to get player input on the axis
-        # and to stop the player if both directions are pressed at the same time
-        input_vector = Vector(0, 0)
+    def left_released(self):
+        self.input_vector.x += 1
+
+    def right_pressed(self):
+        self.input_vector.x += 1
+
+    def right_released(self):
+        self.input_vector.x -= 1
+
+    def down_pressed(self):
         if not self.timers['wall jump'].active and not self.dash:
-            if keys[pygame.K_d]:
-                input_vector.x += 1
-            if keys[pygame.K_a]:
-                input_vector.x -= 1
-            if keys[pygame.K_s]:
-                self.timers['platform skip'].activate()
+            self.timers['platform skip'].activate()
 
-            # Dash on left shift
-            if keys[pygame.K_LSHIFT] and input_vector.x:
-                if not self.dash and not self.timers['dash delay'].active:
-                    self.dash = True
-                    self.velocity.x = input_vector.x  # Lock in the direction
-                    self.timers['dash'].activate()
+    def jump_pressed(self):
+        # Jump only if the player in on ground or touching a wall and player is not dashing
+        if not self.dash:
+            if self.on_surface['floor']:
+                self.velocity.y = self.jump_force
+                self.timers['wall slide block'].activate()
+            elif not self.timers['wall slide block'].active and (self.on_surface['left'] or self.on_surface['right']):
+                self.timers['wall jump'].activate()
+                self.velocity.y = -600
+                if self.on_surface['left']:
+                    self.velocity.x = 1
+                elif self.on_surface['right']:
+                    self.velocity.x = -1
 
-            # Normalize the input vector to ensure the direction vector is always a unit vector
-            if input_vector.x:
-                self.velocity.x = input_vector.normalize().x
-            else:
-                self.velocity.x = input_vector.x
-
-        # Press space to jump
-        if keys[pygame.K_SPACE]:
-            self.jump = True
+    def dash_pressed(self):
+        if self.velocity.x and not self.dash and not self.timers['dash delay'].active:
+            self.dash = True
+            self.velocity.x = self.velocity.x  # Lock in the direction
+            self.timers['dash'].activate()
 
     # Move the player according to its direction and speed
     def move(self, dt):
+        if not self.timers['wall jump'].active and not self.dash:
+            # Normalize the input vector to ensure the direction vector is always a unit vector
+            if self.input_vector.x:
+                self.velocity.x = self.input_vector.normalize().x
+            else:
+                self.velocity.x = 0
+
         # Horizontal movement
         # Move the player in the horizontal direction then check horizontal collisions
-        if self.dash and not self.timers['dash delay'].active:
+
+        # Player moves with the dash speed if he is dashing, and normal speed if not dashing
+        if self.dash:
             self.rect.x += self.velocity.x * self.dash_speed * dt
             self.velocity.y = 0
         else:
@@ -102,26 +121,13 @@ class Player(pygame.sprite.Sprite):
         if (not self.timers['wall slide block'].active and not self.on_surface['floor']
                 and (self.on_surface['right'] or self.on_surface['left'])):
             # Give The player a constant falling speed on wall slide
-            self.velocity.y = self.gravity / 10 * dt
-            self.rect.y += self.velocity.y
+            self.rect.y += self.gravity / 10 * dt
         else:
             # Add vertical acceleration(aka gravity) to the vertical velocity
-            self.velocity.y += self.gravity / 2 * dt
+            self.velocity.y += self.gravity * dt
             self.rect.y += self.velocity.y * dt
-            self.velocity.y += self.gravity / 2 * dt
 
         self.check_collisions_y()
-
-        # Jump only if the player in on ground or touching a wall and player is not dashing
-        if self.jump and not self.dash:
-            if self.on_surface['floor']:
-                self.velocity.y = self.jump_force
-                self.timers['wall slide block'].activate()
-            elif not self.timers['wall slide block'].active and (self.on_surface['left'] or self.on_surface['right']):
-                self.timers['wall jump'].activate()
-                self.velocity.y = -600
-                self.velocity.x = 1 if self.on_surface['left'] else -1
-            self.jump = False
 
     def deactivate_dash(self):
         self.dash = False
@@ -183,10 +189,10 @@ class Player(pygame.sprite.Sprite):
 
                 self.velocity.y = 0
 
-        # Check collisions with semi-collidable platforms
-        for sprite in self.semi_collision_sprites:
-            # Check Bottom collision
-            if not self.timers['platform skip'].active:
+        # Check collisions with semi-collidable platforms if player is not skipping platforms
+        if not self.timers['platform skip'].active:
+            for sprite in self.semi_collision_sprites:
+                # Check Bottom collision
                 if self.rect.colliderect(sprite.rect):
                     if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
                         self.rect.bottom = sprite.rect.top
@@ -201,6 +207,5 @@ class Player(pygame.sprite.Sprite):
         self.prev_rect = self.rect.copy()
         self.update_timers()
         self.move_platform(dt)
-        self.input()
         self.move(dt)
         self.check_contact()
