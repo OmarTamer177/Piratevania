@@ -4,8 +4,16 @@ from input import Input
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, input_system, pos, group, collision_sprites, semi_collision_sprites):
+    def __init__(self, input_system, pos, group, collision_sprites, semi_collision_sprites, z):
         super().__init__(group)
+
+        # Load surface and rect
+        self.image = pygame.image.load(join('Assets', 'graphics', 'player', 'idle', '0.png')).convert_alpha()
+        self.rect = self.image.get_frect(topleft=pos)
+        # player's Hitbox which is responsible for all collisions
+        self.hitbox_rect = self.rect.inflate(-76, -36)
+        # Copy of previous position
+        self.prev_rect = self.hitbox_rect.copy()
 
         # Load the character's input system
         self.input_system = input_system
@@ -21,23 +29,16 @@ class Player(pygame.sprite.Sprite):
         for key, value in inputs.items():
             self.input_system.add_input(key, value)
 
-        # Load surface and rect
-        self.image = pygame.Surface((45, 54))
-        self.image.fill('red')
-        self.rect = self.image.get_frect(topleft=pos)
-
-        # Copy of previous position
-        self.prev_rect = self.rect.copy()
-
         # Movement of the player
         self.input_vector = Vector(0, 0)   # Used to capture the direction of the player input in the x-axis
         self.velocity = Vector(0, 0)
         self.speed = 300
         self.gravity = 2000
         self.jump_force = -830
-        self.wall_jump_force = -600
+        self.wall_jump_force = -800
         self.dash = False
         self.dash_speed = 1700
+        self.dash_direction = 0
 
         # Collision groups with the player
         self.collision_sprites = collision_sprites
@@ -51,8 +52,11 @@ class Player(pygame.sprite.Sprite):
             'wall slide block': Timer(300),
             'dash': Timer(100, self.deactivate_dash),
             'dash delay': Timer(700),
-            'platform skip': Timer(200),
+            'platform skip': Timer(50),
         }
+
+        # Drawing layer(used only when drawing on screen)
+        self.z = z
 
     def left_pressed(self):
         self.input_vector.x -= 1
@@ -93,6 +97,9 @@ class Player(pygame.sprite.Sprite):
         if self.input_vector.x and not self.dash and not self.timers['dash delay'].active:
             self.dash = True
             self.timers['dash'].activate()
+            # Fetch the direction of dashing from the input vector, not the velocity vector
+            # as it doesn't allow choosing dashing direction when blocking the movement when wall jumping
+            self.dash_direction = self.input_vector.x
 
     # Move the player according to its direction and speed
     def move(self, dt):
@@ -110,13 +117,10 @@ class Player(pygame.sprite.Sprite):
 
         # Player moves with the dash speed if he is dashing, and normal speed if not dashing
         if self.dash:
-            # Note: Fetch the direction of dashing from the input vector, not the velocity vector
-            # as it doesn't allow choosing dashing direction when blocking the movement when wall jumping
-            dash_direction = self.input_vector.normalize().x if self.input_vector.x else 0
-            self.rect.x += dash_direction * self.dash_speed * dt
+            self.hitbox_rect.x += self.dash_direction * self.dash_speed * dt
             self.velocity.y = 0   # stop falling while dashing
         else:
-            self.rect.x += self.velocity.x * self.speed * dt
+            self.hitbox_rect.x += self.velocity.x * self.speed * dt
 
         self.check_collisions_x()
 
@@ -128,31 +132,35 @@ class Player(pygame.sprite.Sprite):
         if (not self.timers['wall slide block'].active and not self.on_surface['floor']
                 and (self.on_surface['right'] or self.on_surface['left'])):
             # Give The player a constant falling speed on wall slide
-            self.rect.y += self.gravity / 10 * dt
+            self.hitbox_rect.y += self.gravity / 10 * dt
         else:
             # Add vertical acceleration(aka gravity) to the vertical velocity
             # vf = vi + a.t,
             # df = di + v.t
             self.velocity.y += self.gravity * dt
-            self.rect.y += self.velocity.y * dt
+            self.hitbox_rect.y += self.velocity.y * dt
 
         self.check_collisions_y()
+
+        # Move the player's position to its hitbox position
+        self.rect.center = self.hitbox_rect.center
 
     def move_platform(self, dt):
         # If the player is in contact with the platform, move with it
         if self.platform:
-            self.rect.topleft += self.platform.direction * self.platform.speed * dt
+            self.hitbox_rect.topleft += self.platform.direction * self.platform.speed * dt
 
     def deactivate_dash(self):
         self.dash = False
         self.timers['dash delay'].activate()
+        self.dash_direction = 0
 
     # Create rects under the player, to his left and to his right to check for contacts with other sprites
     def check_contact(self):
         # Place rectangles on the bottom, right and left of player
-        floor_rect = pygame.Rect(self.rect.bottomleft, (self.rect.width, 2))
-        left_rect = pygame.Rect((self.rect.topleft + Vector(-2, self.rect.height / 4)), (2, self.rect.height / 2))
-        right_rect = pygame.Rect((self.rect.topright + Vector(0, self.rect.height / 4)), (2, self.rect.height / 2))
+        floor_rect = pygame.Rect(self.hitbox_rect.bottomleft, (self.hitbox_rect.width, 2))
+        left_rect = pygame.Rect((self.hitbox_rect.topleft + Vector(-2, self.hitbox_rect.height / 4)), (2, self.hitbox_rect.height / 2))
+        right_rect = pygame.Rect((self.hitbox_rect.topright + Vector(0, self.hitbox_rect.height / 4)), (2, self.hitbox_rect.height / 2))
 
         # Place sprite rects in a list
         collidable_contacts = [sprite.rect for sprite in self.collision_sprites]
@@ -168,33 +176,34 @@ class Player(pygame.sprite.Sprite):
         self.platform = None
         sprites = self.collision_sprites.sprites() + self.semi_collision_sprites.sprites()
         for sprite in [sprite for sprite in sprites if hasattr(sprite, 'moving')]:
-            if sprite.rect.colliderect(floor_rect):
+            if sprite.rect.colliderect(floor_rect) and floor_rect.top - 1 <= sprite.rect.top:
                 self.platform = sprite
 
     def check_collisions_x(self):
         for sprite in self.collision_sprites:
-            if self.rect.colliderect(sprite.rect):
+            if self.hitbox_rect.colliderect(sprite.rect):
+
                 # Check Left collision
-                if self.rect.left <= sprite.rect.right and int(self.prev_rect.left) >= int(sprite.prev_rect.right):
-                    self.rect.left = sprite.rect.right
+                if self.hitbox_rect.left <= sprite.rect.right and int(self.prev_rect.left) >= int(sprite.prev_rect.right):
+                    self.hitbox_rect.left = sprite.rect.right
 
                 # Check Right collision
-                if self.rect.right >= sprite.rect.left and int(self.prev_rect.right) <= int(sprite.prev_rect.left):
-                    self.rect.right = sprite.rect.left
+                if self.hitbox_rect.right >= sprite.rect.left and int(self.prev_rect.right) <= int(sprite.prev_rect.left):
+                    self.hitbox_rect.right = sprite.rect.left
 
     def check_collisions_y(self):
         for sprite in self.collision_sprites:
-            if self.rect.colliderect(sprite.rect):
+            if self.hitbox_rect.colliderect(sprite.rect):
 
                 # Check Bottom collision
-                if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
-                    self.rect.bottom = sprite.rect.top
+                if self.hitbox_rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
+                    self.hitbox_rect.bottom = sprite.rect.top
 
                 # Check Top collision
-                if self.rect.top <= sprite.rect.bottom and int(self.prev_rect.top) >= int(sprite.prev_rect.bottom):
-                    self.rect.top = sprite.rect.bottom
+                if self.hitbox_rect.top <= sprite.rect.bottom and int(self.prev_rect.top) >= int(sprite.prev_rect.bottom):
+                    self.hitbox_rect.top = sprite.rect.bottom
                     if hasattr(sprite, 'moving'):
-                        self.rect.top += 5
+                        self.hitbox_rect.top += 5
 
                 self.velocity.y = 0
 
@@ -202,9 +211,9 @@ class Player(pygame.sprite.Sprite):
         if not self.timers['platform skip'].active:
             for sprite in self.semi_collision_sprites:
                 # Check Bottom collision
-                if self.rect.colliderect(sprite.rect):
-                    if self.rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
-                        self.rect.bottom = sprite.rect.top
+                if self.hitbox_rect.colliderect(sprite.rect):
+                    if self.hitbox_rect.bottom >= sprite.rect.top and int(self.prev_rect.bottom) <= int(sprite.prev_rect.top):
+                        self.hitbox_rect.bottom = sprite.rect.top
                         if self.velocity.y >= 0:
                             self.velocity.y = 0
 
@@ -213,8 +222,8 @@ class Player(pygame.sprite.Sprite):
             timer.update()
 
     def update(self, dt):
-        self.prev_rect = self.rect.copy()
         self.update_timers()
         self.move_platform(dt)
         self.move(dt)
         self.check_contact()
+        self.prev_rect = self.hitbox_rect.copy()

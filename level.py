@@ -1,7 +1,7 @@
 import pytmx
 
-from input import InputSystem
 from settings import *
+from input import InputSystem
 from sprites import Sprite, MovingSprite
 from player import Player
 from groups import CameraGroup
@@ -26,18 +26,31 @@ class Level:
 
     # Method used to load the tiles and objects in the tiled map to all_sprites group
     def setup(self, tmx_map: pytmx.TiledMap):
-        # For each tile we need to multiply the position with the tile size,
+        # For each tile in each layer we need to multiply the position with the tile size,
         # as the position is its arrangement not the absolute position,
+        # and specify its type according to its layer
         # and Instantiate a new sprite object
-        for x, y, surf in tmx_map.get_layer_by_name('Terrain').tiles():
-            Sprite((x * TILE_SIZE, y * TILE_SIZE), None, (self.all_sprites, self.collision_group))
+        for layer in ['BG', 'Terrain', 'Platforms', 'FG']:
+            for x, y, surf in tmx_map.get_layer_by_name(layer).tiles():
+                # Add tiles to their suitable collision group, and add all to all_sprites camera group
+                groups = [self.all_sprites]
+                z = LAYERS['bg tiles']
+                if layer == 'Terrain':
+                    groups.append(self.collision_group)
+                if layer == 'Platforms':
+                    groups.append(self.semi_collision_group)
+                if layer == 'FG':
+                    z = LAYERS['fg']
+                if layer == 'BG':
+                    z = LAYERS['bg']
+                Sprite(z, (x * TILE_SIZE, y * TILE_SIZE), surf, groups)
 
         # For the objects, their position is the absolute position unlike regular tiles
         for obj in tmx_map.get_layer_by_name('Objects'):
             # Instantiate a player object if the current object in tiled map objects is a player
             if obj.name == 'player':
                 self.player = Player(self.input_system, (obj.x, obj.y), self.all_sprites, self.collision_group,
-                                     self.semi_collision_group)
+                                     self.semi_collision_group, LAYERS['main'])
 
         # Moving objects
         for obj in tmx_map.get_layer_by_name('Moving Objects'):
@@ -54,7 +67,7 @@ class Level:
                     start_point = (obj.x + obj.width/2, obj.y)
                     end_point = (obj.x + obj.width/2, obj.y + obj.height)
                 speed = obj.properties['speed']
-                MovingSprite((self.all_sprites, self.collision_group), start_point, end_point, direction, speed)
+                MovingSprite((self.all_sprites, self.semi_collision_group), start_point, end_point, direction, speed, LAYERS['main'])
 
     # Load background, draw sprites and update them
     def run(self, dt):

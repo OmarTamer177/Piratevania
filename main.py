@@ -1,6 +1,7 @@
 from settings import *
 from level import Level
 from input import InputSystem
+from utils import *
 
 
 class Game:

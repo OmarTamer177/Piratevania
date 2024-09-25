@@ -65,7 +65,7 @@ class CameraGroup(pygame.sprite.Group):
         # Draw all sprites with the updated offset
         self.shake_pos = Vector(randint(-self.shake_power, self.shake_power),
                                 randint(-self.shake_power, self.shake_power))
-        for sprite in self:
+        for sprite in sorted(self, key=lambda spr: spr.z):
             pos = sprite.rect.topleft - self.offset + self.shake_pos
             self.screen.blit(sprite.image, pos)
 

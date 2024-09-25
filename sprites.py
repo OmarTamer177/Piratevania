@@ -3,7 +3,7 @@ from settings import *
 
 # Sprite class is responsible for loading a sprite objects and adding them to different groups
 class Sprite(pygame.sprite.Sprite):
-    def __init__(self, pos, surf=None, group=None):
+    def __init__(self, z, pos, surf=None, group=None):
         super().__init__(group)
 
         # Load the surface if there is a surface
@@ -19,12 +19,15 @@ class Sprite(pygame.sprite.Sprite):
         # Copy of previous position
         self.prev_rect = self.rect.copy()
 
+        # Drawing layer(used only when drawing on screen)
+        self.z = z
+
 
 class MovingSprite(Sprite):
-    def __init__(self, group, start_point, end_point, move_dir, speed):
+    def __init__(self, group, start_point, end_point, move_dir, speed, z):
         surf = pygame.Surface((200, 50))
         surf.fill('white')
-        super().__init__(start_point, surf, group=group)
+        super().__init__(z, start_point, surf, group=group)
         self.rect.center = start_point
 
         # Movement of sprite
@@ -55,3 +58,19 @@ class MovingSprite(Sprite):
                 self.direction = Vector(0, -1)
             elif self.direction == Vector(0, -1) and self.rect.top <= self.start_point[1]:
                 self.direction = Vector(0, 1)
+
+
+class Animation:
+    def __init__(self, path, count):
+        self.images = []
+
+        for i in range(count):
+            self.images.append(pygame.image.load(join(path, f"{i}.png")))
+
+        self.current_image = 0
+
+    def animate(self):
+        self.current_image += 1
+        if self.current_image >= len(self.images):
+            self.current_image = 0
+        return self.images[self.current_image]
