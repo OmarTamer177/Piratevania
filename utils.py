@@ -1,4 +1,9 @@
-from settings import *
+from os.path import join
+from os import walk
+from typing import Dict, List
+
+import pygame
+from pygame import Surface, SurfaceType
 
 
 def load_image(*path, file_type='png') -> pygame.Surface:
@@ -29,3 +34,13 @@ def load_folder(*path) -> dict[str, pygame.Surface]:
             images[frame_name.split('.')[0]] = image
 
     return images
+
+
+def load_animations(*path) -> dict[str, list[Surface]]:
+    animations = {}
+
+    for folder, sub_folders, __ in walk(str(join(*path))):
+        for sub_folder in sub_folders:
+            animations[sub_folder] = load_animation(folder, sub_folder)
+
+    return animations

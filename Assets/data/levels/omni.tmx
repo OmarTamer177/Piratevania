@@ -165,14 +165,14 @@
    <properties>
     <property name="flip" type="bool" value="false"/>
     <property name="platform" type="bool" value="true"/>
-    <property name="speed" type="int" value="100"/>
+    <property name="speed" type="int" value="10"/>
    </properties>
   </object>
   <object id="75" name="helicopter" x="521.667" y="294.333" width="300" height="10">
    <properties>
     <property name="flip" type="bool" value="false"/>
     <property name="platform" type="bool" value="true"/>
-    <property name="speed" type="int" value="60"/>
+    <property name="speed" type="int" value="6"/>
    </properties>
   </object>
  </objectgroup>

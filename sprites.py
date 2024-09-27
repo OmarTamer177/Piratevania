@@ -1,4 +1,5 @@
 from settings import *
+import math
 
 
 # Sprite class is responsible for loading a sprite objects and adding them to different groups
@@ -38,13 +39,10 @@ class MovingSprite(Sprite):
         self.direction = Vector(1, 0) if move_dir == 'x' else Vector(0, 1)
         self.moving = True
 
-    def update(self, dt):
-        # Update sprite's previous position
-        self.prev_rect = self.rect.copy()
+        self.theta = 0
+        self.distance = Vector(self.end_point[0] - self.start_point[0], self.end_point[1] - self.start_point[1])
 
-        # Update sprite's current position
-        self.rect.topleft += self.direction * self.speed * dt
-
+    def update_direction(self):
         # Update sprite's direction, and flip their direction when reaching an end-point
         # Horizontal Moving sprite
         if self.move_dir == 'x':
@@ -58,6 +56,31 @@ class MovingSprite(Sprite):
                 self.direction = Vector(0, -1)
             elif self.direction == Vector(0, -1) and self.rect.top <= self.start_point[1]:
                 self.direction = Vector(0, 1)
+
+    def update_direction_sine(self, dt):
+        self.theta += dt * self.speed / 10
+        if self.move_dir == 'x':
+            self.rect.centerx = (self.start_point[0] + self.distance.x / 2
+                                 + (self.distance.x / 2) * (math.cos(self.theta)) * self.direction.x)
+            if self.theta > math.pi:
+                self.theta -= math.pi
+                self.direction.x = -self.direction.x
+        elif self.move_dir == 'y':
+            self.rect.centery = (self.start_point[1] + self.distance.y / 2
+                                 + (self.distance.y / 2) * (math.cos(self.theta)) * self.direction.y)
+            if self.theta > math.pi:
+                self.theta -= math.pi
+                self.direction.y = -self.direction.y
+
+    def update(self, dt):
+        # Update sprite's previous position
+        self.prev_rect = self.rect.copy()
+
+        # Update sprite's current position
+        self.update_direction_sine(dt)
+
+        # self.rect.topleft += self.direction * self.speed * dt
+        # self.update_direction()
 
 
 class Animation:

@@ -1,6 +1,7 @@
 from settings import *
 from timer import Timer
 from input import Input
+from utils import *
 
 
 class Player(pygame.sprite.Sprite):
@@ -8,7 +9,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__(group)
 
         # Load surface and rect
-        self.image = pygame.image.load(join('Assets', 'graphics', 'player', 'idle', '0.png')).convert_alpha()
+        self.image = load_image('Assets', 'graphics', 'player', 'idle', '0', file_type='png')
         self.rect = self.image.get_frect(topleft=pos)
         # player's Hitbox which is responsible for all collisions
         self.hitbox_rect = self.rect.inflate(-76, -36)
@@ -148,7 +149,8 @@ class Player(pygame.sprite.Sprite):
     def move_platform(self, dt):
         # If the player is in contact with the platform, move with it
         if self.platform:
-            self.hitbox_rect.topleft += self.platform.direction * self.platform.speed * dt
+            # self.hitbox_rect.topleft += -self.platform.direction * self.platform.speed * dt
+            self.hitbox_rect.topleft += Vector(self.platform.rect.center[0] - self.platform.prev_rect.center[0], self.platform.rect.center[1] - self.platform.prev_rect.center[1])
 
     def deactivate_dash(self):
         self.dash = False

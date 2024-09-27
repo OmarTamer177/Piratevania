@@ -11,6 +11,11 @@ class Game:
         self.clock = pygame.time.Clock()
         pygame.display.set_caption('PirateVania')
 
+        # Assets
+        assets = {
+            'player': load_animations('Assets', 'graphics', 'player')
+        }
+
         # Input system
         self.input_system = InputSystem({})
 
